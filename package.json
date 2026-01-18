@@ -1,0 +1,13 @@
+{
+  "name": "travel-api",
+  "scripts": {
+    "dev": "bun run --hot src/index.ts",
+    "db:up": "docker compose up -d"
+  },
+  "dependencies": {
+    "hono": "^4.11.4"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}

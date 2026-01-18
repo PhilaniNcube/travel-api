@@ -1,0 +1,11 @@
+services:
+ postgres:
+   image: postgres:17.5
+   restart: unless-stopped
+   container_name: travel-postgres
+   environment:
+     POSTGRES_USER: travel_user
+     POSTGRES_PASSWORD: secure_password
+     POSTGRES_DB: travel_db
+   ports:
+     - "5432:5432"  
