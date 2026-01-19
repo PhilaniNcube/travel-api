@@ -87,6 +87,7 @@ export const userRelations = relations(user, ({ many }) => ({
   sessions: many(session),
   accounts: many(account),
   bookings: many(bookings),
+  reviews: many(reviews),
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({
@@ -112,6 +113,24 @@ export const bookingStatusEnum = pgEnum("booking_status", [
   "completed",
 ]);
 
+export const paymentStatusEnum = pgEnum("payment_status", [
+  "pending",
+  "processing",
+  "completed",
+  "failed",
+  "refunded",
+  "partially_refunded",
+]);
+
+export const paymentMethodEnum = pgEnum("payment_method", [
+  "credit_card",
+  "debit_card",
+  "paypal",
+  "bank_transfer",
+  "cash",
+  "other",
+]);
+
 // --- CATALOG TABLES ---
 
 // 1. Activities: The atomic building blocks (e.g., "Shark Diving", "Wine Tasting")
@@ -130,6 +149,21 @@ export const activities = pgTable("activity", {
     .notNull(),
 });
 
+// 1a. Activity Media: Images and videos for activities
+export const activityMedia = pgTable("activity_media", {
+  id: text("id").primaryKey(),
+  activityId: text("activity_id")
+    .notNull()
+    .references(() => activities.id, { onDelete: "cascade" }),
+  mediaUrl: text("media_url").notNull(),
+  mediaType: text("media_type").notNull(), // 'image' or 'video'
+  altText: text("alt_text"),
+  displayOrder: integer("display_order").default(0).notNull(), // For ordering media items
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("activity_media_activityId_idx").on(table.activityId)
+]);
+
 // 2. Packages: The predefined bundles
 export const packages = pgTable("package", {
   id: text("id").primaryKey(),
@@ -144,6 +178,21 @@ export const packages = pgTable("package", {
     .$onUpdate(() => new Date())
     .notNull(),
 });
+
+// 2a. Package Media: Images and videos for packages
+export const packageMedia = pgTable("package_media", {
+  id: text("id").primaryKey(),
+  packageId: text("package_id")
+    .notNull()
+    .references(() => packages.id, { onDelete: "cascade" }),
+  mediaUrl: text("media_url").notNull(),
+  mediaType: text("media_type").notNull(), // 'image' or 'video'
+  altText: text("alt_text"),
+  displayOrder: integer("display_order").default(0).notNull(), // For ordering media items
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("package_media_packageId_idx").on(table.packageId)
+]);
 
 // 3. Package Activities: Join table for Predefined Packages (Many-to-Many)
 export const packagesToActivities = pgTable(
@@ -195,11 +244,82 @@ export const bookingActivities = pgTable("booking_activity", {
   activityId: text("activity_id")
     .notNull()
     .references(() => activities.id),
+  guideId: text("guide_id")
+    .references(() => guides.id, { onDelete: "set null" }), // Optional guide assignment
   // We snapshot the price here. If the catalog price changes later, 
   // this historic booking record remains accurate.
   priceAtBooking: decimal("price_at_booking", { precision: 10, scale: 2 }).notNull(),
   scheduledAt: timestamp("scheduled_at"), // Specific time for this activity
-});
+}, (table) => [
+  index("booking_activity_guideId_idx").on(table.guideId),
+]);
+
+// 6. Reviews: Customer reviews and ratings for booked activities
+export const reviews = pgTable("review", {
+  id: text("id").primaryKey(),
+  bookingActivityId: text("booking_activity_id")
+    .notNull()
+    .references(() => bookingActivities.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  rating: integer("rating").notNull(), // 1-5 stars
+  comment: text("comment"),
+  isVerified: boolean("is_verified").default(true).notNull(), // Verified purchase
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+}, (table) => [
+  index("review_bookingActivityId_idx").on(table.bookingActivityId),
+  index("review_userId_idx").on(table.userId),
+]);
+
+// 7. Payments: Track payment transactions for bookings
+export const payments = pgTable("payment", {
+  id: text("id").primaryKey(),
+  bookingId: text("booking_id")
+    .notNull()
+    .references(() => bookings.id, { onDelete: "cascade" }),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  currency: text("currency").default("USD").notNull(), // ISO 4217 currency code
+  paymentMethod: paymentMethodEnum("payment_method").notNull(),
+  paymentStatus: paymentStatusEnum("payment_status").default("pending").notNull(),
+  transactionId: text("transaction_id"), // External payment provider transaction ID
+  paymentProvider: text("payment_provider"), // e.g., 'stripe', 'paypal', 'square'
+  paymentIntentId: text("payment_intent_id"), // For providers like Stripe
+  metadata: text("metadata"), // JSON string for additional payment data
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+}, (table) => [
+  index("payment_bookingId_idx").on(table.bookingId),
+  index("payment_status_idx").on(table.paymentStatus),
+  index("payment_transactionId_idx").on(table.transactionId),
+]);
+
+// 8. Guides: Tour guides and staff who lead activities
+export const guides = pgTable("guide", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
+  phone: text("phone"),
+  bio: text("bio"),
+  specialties: text("specialties"), // Comma-separated or JSON array of specialty areas
+  imageUrl: text("image_url"),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+}, (table) => [
+  index("guide_email_idx").on(table.email),
+  index("guide_isActive_idx").on(table.isActive),
+]);
 
 
 // --- RELATIONS ---
@@ -207,11 +327,27 @@ export const bookingActivities = pgTable("booking_activity", {
 export const activitiesRelations = relations(activities, ({ many }) => ({
   packages: many(packagesToActivities),
   bookingActivities: many(bookingActivities),
+  media: many(activityMedia),
+}));
+
+export const activityMediaRelations = relations(activityMedia, ({ one }) => ({
+  activity: one(activities, {
+    fields: [activityMedia.activityId],
+    references: [activities.id],
+  }),
 }));
 
 export const packagesRelations = relations(packages, ({ many }) => ({
   activities: many(packagesToActivities),
   bookings: many(bookings),
+  media: many(packageMedia),
+}));
+
+export const packageMediaRelations = relations(packageMedia, ({ one }) => ({
+  package: one(packages, {
+    fields: [packageMedia.packageId],
+    references: [packages.id],
+  }),
 }));
 
 export const packagesToActivitiesRelations = relations(packagesToActivities, ({ one }) => ({
@@ -235,9 +371,10 @@ export const bookingsRelations = relations(bookings, ({ one, many }) => ({
     references: [packages.id],
   }),
   activities: many(bookingActivities), // The itinerary
+  payments: many(payments),
 }));
 
-export const bookingActivitiesRelations = relations(bookingActivities, ({ one }) => ({
+export const bookingActivitiesRelations = relations(bookingActivities, ({ one, many }) => ({
   booking: one(bookings, {
     fields: [bookingActivities.bookingId],
     references: [bookings.id],
@@ -246,4 +383,31 @@ export const bookingActivitiesRelations = relations(bookingActivities, ({ one })
     fields: [bookingActivities.activityId],
     references: [activities.id],
   }),
+  guide: one(guides, {
+    fields: [bookingActivities.guideId],
+    references: [guides.id],
+  }),
+  reviews: many(reviews),
+}));
+
+export const reviewsRelations = relations(reviews, ({ one }) => ({
+  bookingActivity: one(bookingActivities, {
+    fields: [reviews.bookingActivityId],
+    references: [bookingActivities.id],
+  }),
+  user: one(user, {
+    fields: [reviews.userId],
+    references: [user.id],
+  }),
+}));
+
+export const paymentsRelations = relations(payments, ({ one }) => ({
+  booking: one(bookings, {
+    fields: [payments.bookingId],
+    references: [bookings.id],
+  }),
+}));
+
+export const guidesRelations = relations(guides, ({ many }) => ({
+  bookingActivities: many(bookingActivities),
 }));
