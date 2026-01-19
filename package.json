@@ -6,7 +6,8 @@
     "db:stop": "docker compose stop",
     "db:generate:migration": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "open-auth-docs": "open-cli http://localhost:3000/api/auth/reference"
   },
   "dependencies": {
     "better-auth": "^1.4.15",
@@ -20,6 +21,7 @@
     "@types/bun": "latest",
     "@types/pg": "^8.16.0",
     "drizzle-kit": "^0.31.8",
+    "open-cli": "^8.0.0",
     "tsx": "^4.21.0"
   }
 }
