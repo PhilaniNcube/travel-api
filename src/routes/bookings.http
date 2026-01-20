@@ -1,0 +1,67 @@
+@baseUrl = http://localhost:3000
+@authToken = YOUR_SESSION_TOKEN_HERE
+@bookingId = YOUR_BOOKING_ID_HERE
+
+###
+# List all bookings for authenticated user (default pagination)
+GET {{baseUrl}}/api/bookings
+Authorization: Bearer {{authToken}}
+
+###
+# List bookings with pagination
+GET {{baseUrl}}/api/bookings?page=1&limit=5
+Authorization: Bearer {{authToken}}
+
+###
+# Filter bookings by status - pending
+GET {{baseUrl}}/api/bookings?status=pending
+Authorization: Bearer {{authToken}}
+
+###
+# Filter bookings by status - confirmed
+GET {{baseUrl}}/api/bookings?status=confirmed
+Authorization: Bearer {{authToken}}
+
+###
+# Filter bookings by status - cancelled
+GET {{baseUrl}}/api/bookings?status=cancelled
+Authorization: Bearer {{authToken}}
+
+###
+# Filter bookings by status - completed
+GET {{baseUrl}}/api/bookings?status=completed
+Authorization: Bearer {{authToken}}
+
+###
+# Combination: Filter by status with pagination
+GET {{baseUrl}}/api/bookings?status=confirmed&page=1&limit=10
+Authorization: Bearer {{authToken}}
+
+###
+# Test without authentication (should return 401)
+GET {{baseUrl}}/api/bookings
+
+###
+# Test with invalid status (should return 400)
+GET {{baseUrl}}/api/bookings?status=invalid_status
+Authorization: Bearer {{authToken}}
+
+###
+# Get booking by ID (with full details)
+GET {{baseUrl}}/api/bookings/{{bookingId}}
+Authorization: Bearer {{authToken}}
+
+###
+# Get booking by ID without authentication (should return 401)
+GET {{baseUrl}}/api/bookings/{{bookingId}}
+
+###
+# Get booking by ID with non-existent ID (should return 404)
+GET {{baseUrl}}/api/bookings/non-existent-id-12345
+Authorization: Bearer {{authToken}}
+
+###
+# Get booking by ID that doesn't belong to user (should return 403 unless admin)
+GET {{baseUrl}}/api/bookings/other-users-booking-id
+Authorization: Bearer {{authToken}}
+
