@@ -1,0 +1,95 @@
+### Get All Packages (No filters)
+GET http://localhost:3000/api/packages
+
+###
+
+### Get Packages with Pagination
+GET http://localhost:3000/api/packages?page=1&limit=5
+
+###
+
+### Get Single Package by ID
+GET http://localhost:3000/api/packages/package_123
+
+###
+
+### Get Package Activities
+GET http://localhost:3000/api/packages/package_123/activities
+
+###
+
+### Get Package Media
+GET http://localhost:3000/api/packages/package_123/media
+
+###
+
+### Create New Package (Admin only)
+POST http://localhost:3000/api/packages
+Content-Type: application/json
+
+{
+  "name": "Adventure Package",
+  "description": "An exciting adventure package with multiple activities",
+  "imageUrl": "https://example.com/package.jpg",
+  "isCustom": false,
+  "basePrice": 500
+}
+
+###
+
+### Update Package (Admin only)
+PATCH http://localhost:3000/api/packages/package_123
+Content-Type: application/json
+
+{
+  "name": "Updated Adventure Package",
+  "basePrice": 550
+}
+
+###
+
+### Add Activity to Package (Admin only)
+POST http://localhost:3000/api/packages/package_123/activities
+Content-Type: application/json
+
+{
+  "activityId": "activity_456"
+}
+
+###
+
+### Remove Activity from Package (Admin only)
+DELETE http://localhost:3000/api/packages/package_123/activities/activity_456
+
+###
+
+### Upload Package Media (Admin only)
+POST http://localhost:3000/api/packages/package_123/media
+Content-Type: application/json
+
+{
+  "media": [
+    {
+      "mediaUrl": "https://example.com/image1.jpg",
+      "mediaType": "image",
+      "altText": "Package main image",
+      "displayOrder": 0
+    },
+    {
+      "mediaUrl": "https://example.com/video1.mp4",
+      "mediaType": "video",
+      "altText": "Package intro video",
+      "displayOrder": 1
+    }
+  ]
+}
+
+###
+
+### Delete Package Media (Admin only)
+DELETE http://localhost:3000/api/packages/package_123/media/media_789
+
+###
+
+### Delete Package (Admin only)
+DELETE http://localhost:3000/api/packages/package_123
