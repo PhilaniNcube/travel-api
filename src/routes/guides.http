@@ -1,0 +1,41 @@
+@baseUrl = http://localhost:3000
+
+### List All Guides (no filters)
+GET {{baseUrl}}/api/guides HTTP/1.1
+
+### List All Guides with Pagination
+GET {{baseUrl}}/api/guides?page=1&limit=5 HTTP/1.1
+
+### List Active Guides Only
+GET {{baseUrl}}/api/guides?is_active=true HTTP/1.1
+
+### List Inactive Guides Only
+GET {{baseUrl}}/api/guides?is_active=false HTTP/1.1
+
+### Filter Guides by Single Specialty
+GET {{baseUrl}}/api/guides?specialties=diving HTTP/1.1
+
+### Filter Guides by Multiple Specialties (comma-separated)
+GET {{baseUrl}}/api/guides?specialties=diving,hiking HTTP/1.1
+
+### Filter Active Guides with Specialty
+GET {{baseUrl}}/api/guides?is_active=true&specialties=safari HTTP/1.1
+
+### Combined Filters with Pagination
+GET {{baseUrl}}/api/guides?page=1&limit=10&is_active=true&specialties=climbing HTTP/1.1
+
+### Get Guide by ID
+GET {{baseUrl}}/api/guides/guide123 HTTP/1.1
+
+### Get Guide Availability (Replace dates and guide ID)
+GET {{baseUrl}}/api/guides/guide123/availability?startDate=2026-02-01&endDate=2026-02-28 HTTP/1.1
+
+### Get Guide Availability (7 days from today)
+GET {{baseUrl}}/api/guides/guide123/availability?startDate=2026-01-20&endDate=2026-01-27 HTTP/1.1
+
+### Get Guide Reviews
+GET {{baseUrl}}/api/guides/guide123/reviews HTTP/1.1
+
+### Get Guide Reviews with Pagination
+GET {{baseUrl}}/api/guides/guide123/reviews?page=1&limit=5 HTTP/1.1
+
