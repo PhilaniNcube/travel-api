@@ -8,6 +8,11 @@ GET http://localhost:3000/api/activities/activity_123
 
 ###
 
+### Get Activity Media
+GET http://localhost:3000/api/activities/activity_123/media
+
+###
+
 ### Get Activities with Pagination
 GET http://localhost:3000/api/activities?page=1&limit=5
 

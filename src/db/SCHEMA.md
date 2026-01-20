@@ -101,6 +101,33 @@ Stores verification tokens for email verification and password resets.
 
 ---
 
+### `admin_user`
+Stores admin privileges and permissions for users who can perform administrative actions.
+
+**Columns:**
+- `id` (text, PK) - Unique admin record identifier
+- `user_id` (text, NOT NULL, UNIQUE, FK → user.id, CASCADE DELETE) - Associated user
+- `role` (text, DEFAULT "admin") - Admin role (e.g., "admin", "super_admin", "moderator")
+- `permissions` (text, nullable) - JSON string for granular permissions
+- `is_active` (boolean, DEFAULT true) - Whether admin privileges are currently active
+- `created_at` (timestamp, DEFAULT NOW) - Admin record creation timestamp
+- `updated_at` (timestamp, AUTO-UPDATE) - Last modification timestamp
+
+**Indexes:**
+- `admin_user_userId_idx` on `user_id`
+- `admin_user_isActive_idx` on `is_active`
+
+**Relations:**
+- One-to-One with `user`
+
+**Notes:**
+- Only users with an active record in this table can perform admin actions
+- The `permissions` field allows for fine-grained access control (stored as JSON)
+- Cascade delete ensures admin privileges are removed when a user is deleted
+- The `is_active` flag allows temporary suspension of admin privileges without deleting the record
+
+---
+
 ## 2. Catalog Management
 
 ### `activity`

@@ -83,11 +83,42 @@ export const verification = pgTable(
   (table) => [index("verification_identifier_idx").on(table.identifier)],
 );
 
-export const userRelations = relations(user, ({ many }) => ({
+export const adminUser = pgTable(
+  "admin_user",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .unique()
+      .references(() => user.id, { onDelete: "cascade" }),
+    role: text("role").default("admin").notNull(), // e.g., "admin", "super_admin", "moderator"
+    permissions: text("permissions"), // JSON string for granular permissions
+    isActive: boolean("is_active").default(true).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    index("admin_user_userId_idx").on(table.userId),
+    index("admin_user_isActive_idx").on(table.isActive),
+  ],
+);
+
+export const userRelations = relations(user, ({ many, one }) => ({
   sessions: many(session),
   accounts: many(account),
   bookings: many(bookings),
   reviews: many(reviews),
+  adminUser: one(adminUser),
+}));
+
+export const adminUserRelations = relations(adminUser, ({ one }) => ({
+  user: one(user, {
+    fields: [adminUser.userId],
+    references: [user.id],
+  }),
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({
