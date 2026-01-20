@@ -81,3 +81,12 @@ export const assignGuideSchema = z.object({
 });
 
 export type AssignGuideInput = z.infer<typeof assignGuideSchema>;
+
+/**
+ * Schema for validating booking ID parameter
+ */
+export const getBookingParamsSchema = z.object({
+  id: z.string().min(1, "Booking ID is required"),
+});
+
+export type GetBookingParams = z.infer<typeof getBookingParamsSchema>;

@@ -1,0 +1,95 @@
+### Webhook Testing
+### Note: In production, webhooks are called by the payment provider (e.g., Stripe)
+### This file is for documentation and local testing purposes only
+
+@baseUrl = http://localhost:3000/api
+
+### 1. Test Stripe Webhook - Payment Success
+### Note: This requires a valid Stripe signature header
+### Use Stripe CLI for testing: stripe listen --forward-to localhost:3000/api/webhooks/payment
+POST {{baseUrl}}/webhooks/payment
+Content-Type: application/json
+Stripe-Signature: your_stripe_signature_here
+
+{
+  "id": "evt_test_webhook",
+  "object": "event",
+  "type": "payment_intent.succeeded",
+  "data": {
+    "object": {
+      "id": "pi_test_123456789",
+      "object": "payment_intent",
+      "amount": 10000,
+      "currency": "usd",
+      "status": "succeeded",
+      "latest_charge": "ch_test_123456789",
+      "metadata": {
+        "bookingId": "booking_123",
+        "userId": "user_123"
+      }
+    }
+  }
+}
+
+### 2. Test Stripe Webhook - Payment Failed
+POST {{baseUrl}}/webhooks/payment
+Content-Type: application/json
+Stripe-Signature: your_stripe_signature_here
+
+{
+  "id": "evt_test_webhook_failed",
+  "object": "event",
+  "type": "payment_intent.payment_failed",
+  "data": {
+    "object": {
+      "id": "pi_test_123456789",
+      "object": "payment_intent",
+      "amount": 10000,
+      "currency": "usd",
+      "status": "requires_payment_method",
+      "last_payment_error": {
+        "message": "Your card was declined."
+      }
+    }
+  }
+}
+
+### 3. Test Stripe Webhook - Refund
+POST {{baseUrl}}/webhooks/payment
+Content-Type: application/json
+Stripe-Signature: your_stripe_signature_here
+
+{
+  "id": "evt_test_webhook_refund",
+  "object": "event",
+  "type": "charge.refunded",
+  "data": {
+    "object": {
+      "id": "ch_test_123456789",
+      "object": "charge",
+      "amount": 10000,
+      "amount_refunded": 10000,
+      "currency": "usd",
+      "refunded": true,
+      "status": "succeeded"
+    }
+  }
+}
+
+### Testing with Stripe CLI
+### 
+### 1. Install Stripe CLI: https://stripe.com/docs/stripe-cli
+### 
+### 2. Login to Stripe:
+###    stripe login
+### 
+### 3. Forward webhooks to local server:
+###    stripe listen --forward-to localhost:3000/api/webhooks/payment
+### 
+### 4. Trigger test events:
+###    stripe trigger payment_intent.succeeded
+###    stripe trigger payment_intent.payment_failed
+###    stripe trigger charge.refunded
+### 
+### 5. The webhook secret will be displayed when you run "stripe listen"
+###    Add it to your .env file as: STRIPE_WEBHOOK_SECRET=whsec_...

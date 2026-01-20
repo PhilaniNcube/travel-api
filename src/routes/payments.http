@@ -1,0 +1,96 @@
+@paymentId = your-payment-id-here
+@bookingId = your-booking-id-here
+
+### Create Payment (Stripe)
+POST http://localhost:3000/api/payments
+Content-Type: application/json
+
+{
+  "bookingId": "{{bookingId}}",
+  "currency": "USD",
+  "paymentMethod": "credit_card",
+  "paymentProvider": "stripe",
+  "metadata": {
+    "customerNote": "Payment for vacation booking"
+  }
+}
+
+###
+
+### Create Payment with Custom Amount
+POST http://localhost:3000/api/payments
+Content-Type: application/json
+
+{
+  "bookingId": "{{bookingId}}",
+  "amount": 500.00,
+  "currency": "USD",
+  "paymentMethod": "credit_card",
+  "paymentProvider": "stripe",
+  "metadata": {
+    "paymentType": "deposit"
+  }
+}
+
+###
+
+### Create Manual Payment (for admin/cash payments)
+POST http://localhost:3000/api/payments
+Content-Type: application/json
+
+{
+  "bookingId": "{{bookingId}}",
+  "amount": 1000.00,
+  "currency": "USD",
+  "paymentMethod": "cash",
+  "paymentProvider": "manual"
+}
+
+###
+
+### Get Payment by ID
+GET http://localhost:3000/api/payments/{{paymentId}}
+
+###
+
+### Update Payment Status (Admin only)
+PATCH http://localhost:3000/api/payments/{{paymentId}}
+Content-Type: application/json
+
+{
+  "paymentStatus": "completed",
+  "transactionId": "txn_1234567890",
+  "metadata": {
+    "note": "Payment verified and completed"
+  }
+}
+
+###
+
+### Process Full Refund (Admin only)
+POST http://localhost:3000/api/payments/{{paymentId}}/refund
+Content-Type: application/json
+
+{
+  "reason": "Customer requested cancellation",
+  "metadata": {
+    "approvedBy": "manager@example.com"
+  }
+}
+
+###
+
+### Process Partial Refund (Admin only)
+POST http://localhost:3000/api/payments/{{paymentId}}/refund
+Content-Type: application/json
+
+{
+  "amount": 250.00,
+  "reason": "Partial service issue - refunding 50% of payment",
+  "metadata": {
+    "issueType": "service_quality",
+    "approvedBy": "manager@example.com"
+  }
+}
+
+###

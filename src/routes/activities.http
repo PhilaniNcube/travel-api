@@ -35,3 +35,14 @@ GET http://localhost:3000/api/activities?location=Cape&minPrice=100&maxPrice=500
 
 ### Get Second Page with Filters
 GET http://localhost:3000/api/activities?page=2&limit=10&location=Cape Town
+###
+
+### Get Activity Reviews
+GET http://localhost:3000/api/activities/activity_123/reviews
+
+###
+
+### Get Activity Reviews with Pagination
+GET http://localhost:3000/api/activities/activity_123/reviews?page=1&limit=5
+
+###

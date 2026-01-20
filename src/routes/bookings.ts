@@ -1,8 +1,8 @@
 import { Hono } from "hono";
 import { db } from "../db/db";
-import { bookings, packages, bookingActivities, activities, payments, guides, adminUser, packagesToActivities } from "../db/schema";
+import { bookings, packages, bookingActivities, activities, payments, guides, packagesToActivities } from "../db/schema";
 import { and, eq, sql, inArray } from "drizzle-orm";
-import { requireAuth, requireAdmin } from "../lib/auth";
+import { requireAuth, requireAdmin, isUserAdmin } from "../lib/auth";
 import type { User } from "better-auth";
 import { nanoid } from "nanoid";
 import { 
@@ -10,7 +10,8 @@ import {
   updateBookingSchema, 
   addActivityToBookingSchema,
   updateBookingActivitySchema,
-  assignGuideSchema 
+  assignGuideSchema,
+  getBookingParamsSchema
 } from "./bookings.validation";
 
 type Variables = {
@@ -165,11 +166,7 @@ app.get("/:id", requireAuth, async (c) => {
     }
 
     // Check if user is an admin
-    const admin = await db.query.adminUser.findFirst({
-      where: eq(adminUser.userId, user.id),
-    });
-
-    const isAdmin = admin && admin.isActive;
+    const isAdmin = await isUserAdmin(user.id);
 
     // Fetch the booking with package information
     const [booking] = await db
@@ -364,11 +361,7 @@ app.get("/:id/activities", requireAuth, async (c) => {
     }
 
     // Check if user is an admin
-    const admin = await db.query.adminUser.findFirst({
-      where: eq(adminUser.userId, user.id),
-    });
-
-    const isAdmin = admin && admin.isActive;
+    const isAdmin = await isUserAdmin(user.id);
 
     // First, check if booking exists and verify ownership
     const [booking] = await db
@@ -1291,6 +1284,137 @@ app.patch("/:id/activities/:activityId/guide", requireAdmin, async (c) => {
       },
       500
     );
+  }
+});
+
+/**
+ * GET /api/bookings/:id/payments
+ * List all payments for a specific booking
+ * 
+ * Authorization:
+ * - Only admins can access this endpoint
+ * 
+ * Returns:
+ * - All payments for the booking
+ * - Payment status and amounts
+ * - Total paid vs booking total
+ */
+app.get("/:id/payments", requireAdmin, async (c) => {
+  try {
+    // Validate booking ID parameter
+    const paramsValidation = getBookingParamsSchema.safeParse({
+      id: c.req.param("id"),
+    });
+
+    if (!paramsValidation.success) {
+      return c.json({
+        success: false,
+        error: "Invalid booking ID",
+        details: paramsValidation.error.message,
+      }, 400);
+    }
+
+    const { id: bookingId } = paramsValidation.data;
+
+    // Fetch the booking to ensure it exists
+    const bookingData = await db
+      .select({
+        id: bookings.id,
+        userId: bookings.userId,
+        totalPrice: bookings.totalPrice,
+        status: bookings.status,
+        startDate: bookings.startDate,
+        endDate: bookings.endDate,
+        createdAt: bookings.createdAt,
+      })
+      .from(bookings)
+      .where(eq(bookings.id, bookingId))
+      .limit(1);
+
+    // Check if booking exists
+    if (!bookingData || bookingData.length === 0) {
+      return c.json({
+        success: false,
+        error: "Booking not found",
+      }, 404);
+    }
+
+    const booking = bookingData[0];
+
+    // Fetch all payments for this booking
+    const paymentsData = await db
+      .select({
+        id: payments.id,
+        amount: payments.amount,
+        currency: payments.currency,
+        paymentMethod: payments.paymentMethod,
+        paymentStatus: payments.paymentStatus,
+        transactionId: payments.transactionId,
+        paymentProvider: payments.paymentProvider,
+        paymentIntentId: payments.paymentIntentId,
+        metadata: payments.metadata,
+        createdAt: payments.createdAt,
+        updatedAt: payments.updatedAt,
+      })
+      .from(payments)
+      .where(eq(payments.bookingId, bookingId))
+      .orderBy(payments.createdAt);
+
+    // Calculate total paid amount
+    const totalPaid = paymentsData.reduce((sum, payment) => {
+      // Only count successful payments
+      if (payment.paymentStatus === "completed") {
+        return sum + parseFloat(payment.amount);
+      }
+      return sum;
+    }, 0);
+
+    // Calculate remaining amount
+    const bookingTotal = parseFloat(booking.totalPrice);
+    const remainingAmount = bookingTotal - totalPaid;
+
+    // Return payment details with summary
+    return c.json({
+      success: true,
+      data: {
+        booking: {
+          id: booking.id,
+          totalPrice: booking.totalPrice,
+          status: booking.status,
+          startDate: booking.startDate,
+          endDate: booking.endDate,
+        },
+        payments: paymentsData.map(payment => ({
+          id: payment.id,
+          amount: payment.amount,
+          currency: payment.currency,
+          paymentMethod: payment.paymentMethod,
+          paymentStatus: payment.paymentStatus,
+          transactionId: payment.transactionId,
+          paymentProvider: payment.paymentProvider,
+          paymentIntentId: payment.paymentIntentId,
+          metadata: payment.metadata ? JSON.parse(payment.metadata) : null,
+          createdAt: payment.createdAt,
+          updatedAt: payment.updatedAt,
+        })),
+        summary: {
+          totalPaid: totalPaid.toFixed(2),
+          bookingTotal: bookingTotal.toFixed(2),
+          remainingAmount: remainingAmount.toFixed(2),
+          currency: paymentsData[0]?.currency || "USD",
+          paymentCount: paymentsData.length,
+          completedPayments: paymentsData.filter(p => p.paymentStatus === "completed").length,
+          pendingPayments: paymentsData.filter(p => p.paymentStatus === "pending").length,
+          failedPayments: paymentsData.filter(p => p.paymentStatus === "failed").length,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching booking payments:", error);
+    return c.json({
+      success: false,
+      error: "Internal server error while fetching booking payments",
+    }, 500);
   }
 });
 

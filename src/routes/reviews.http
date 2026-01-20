@@ -1,0 +1,88 @@
+### Get All Reviews - First Page
+GET http://localhost:3000/api/reviews
+Content-Type: application/json
+
+### Get All Reviews - Second Page with Custom Limit
+GET http://localhost:3000/api/reviews?page=2&limit=5
+Content-Type: application/json
+
+### Get All Reviews - Large Limit
+GET http://localhost:3000/api/reviews?limit=50
+Content-Type: application/json
+
+### Get User Reviews (Me) - Requires Authentication
+GET http://localhost:3000/api/reviews/me
+Content-Type: application/json
+# Add your authorization header here
+# Authorization: Bearer YOUR_TOKEN
+
+### Get User Reviews (Me) - With Pagination
+GET http://localhost:3000/api/reviews/me?page=1&limit=10
+Content-Type: application/json
+# Add your authorization header here
+# Authorization: Bearer YOUR_TOKEN
+
+### Get Review by ID
+GET http://localhost:3000/api/reviews/review_123
+Content-Type: application/json
+
+### Get Review by ID - Not Found
+GET http://localhost:3000/api/reviews/nonexistent_id
+Content-Type: application/json
+### Create Review - Requires Authentication
+POST http://localhost:3000/api/reviews
+Content-Type: application/json
+# Add your authorization header here
+# Authorization: Bearer YOUR_TOKEN
+
+{
+  "bookingActivityId": "booking_activity_123",
+  "rating": 5,
+  "comment": "Amazing experience! The guide was knowledgeable and the activity was well-organized."
+}
+
+### Create Review - Minimum Required Fields (Without Comment)
+POST http://localhost:3000/api/reviews
+Content-Type: application/json
+# Add your authorization header here
+# Authorization: Bearer YOUR_TOKEN
+
+{
+  "bookingActivityId": "booking_activity_456",
+  "rating": 4
+}
+
+### Create Review - Invalid Rating (Too Low)
+POST http://localhost:3000/api/reviews
+Content-Type: application/json
+# Add your authorization header here
+# Authorization: Bearer YOUR_TOKEN
+
+{
+  "bookingActivityId": "booking_activity_789",
+  "rating": 0,
+  "comment": "This should fail validation"
+}
+
+### Create Review - Invalid Rating (Too High)
+POST http://localhost:3000/api/reviews
+Content-Type: application/json
+# Add your authorization header here
+# Authorization: Bearer YOUR_TOKEN
+
+{
+  "bookingActivityId": "booking_activity_789",
+  "rating": 6,
+  "comment": "This should also fail validation"
+}
+
+### Create Review - Missing Booking Activity ID
+POST http://localhost:3000/api/reviews
+Content-Type: application/json
+# Add your authorization header here
+# Authorization: Bearer YOUR_TOKEN
+
+{
+  "rating": 5,
+  "comment": "This should fail validation"
+}

@@ -4,7 +4,7 @@ import {betterAuth} from 'better-auth';
 import { openAPI } from 'better-auth/plugins';
 import type { Context } from 'hono';
 import { adminUser } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 
 export const auth = betterAuth({
     emailAndPassword: {
@@ -17,6 +17,22 @@ export const auth = betterAuth({
     openAPI()
   ],
 });
+
+/**
+ * Check if a user is an active admin
+ * @param userId - The user ID to check
+ * @returns true if user is an active admin, false otherwise
+ */
+export const isUserAdmin = async (userId: string): Promise<boolean> => {
+  const admin = await db.query.adminUser.findFirst({
+    where: and(
+      eq(adminUser.userId, userId),
+      eq(adminUser.isActive, true)
+    ),
+  });
+
+  return !!admin;
+};
 
 /**
  * Middleware to authenticate and authorize admin users
@@ -34,19 +50,17 @@ export const requireAdmin = async (c: Context, next: () => Promise<void>) => {
       return c.json({ error: 'Unauthorized - Please login' }, 401);
     }
 
-    // Check if user is an admin
-    const admin = await db.query.adminUser.findFirst({
-      where: eq(adminUser.userId, session.user.id),
-    });
+    // Check if user is an active admin
+    const isAdmin = await isUserAdmin(session.user.id);
 
-    if (!admin) {
+    if (!isAdmin) {
       return c.json({ error: 'Forbidden - Admin access required' }, 403);
     }
 
-    // Check if admin account is active
-    if (!admin.isActive) {
-      return c.json({ error: 'Forbidden - Admin account is inactive' }, 403);
-    }
+    // Fetch admin details for context
+    const admin = await db.query.adminUser.findFirst({
+      where: eq(adminUser.userId, session.user.id),
+    });
 
     // Attach user and admin info to context for use in route handlers
     c.set('user', session.user);
@@ -76,22 +90,20 @@ export const requireAdminRole = (allowedRoles: string[]) => {
         return c.json({ error: 'Unauthorized - Please login' }, 401);
       }
 
-      // Check if user is an admin
+      // Check if user is an active admin
+      const isAdmin = await isUserAdmin(session.user.id);
+
+      if (!isAdmin) {
+        return c.json({ error: 'Forbidden - Admin access required' }, 403);
+      }
+
+      // Fetch admin details for role checking
       const admin = await db.query.adminUser.findFirst({
         where: eq(adminUser.userId, session.user.id),
       });
 
-      if (!admin) {
-        return c.json({ error: 'Forbidden - Admin access required' }, 403);
-      }
-
-      // Check if admin account is active
-      if (!admin.isActive) {
-        return c.json({ error: 'Forbidden - Admin account is inactive' }, 403);
-      }
-
       // Check if admin has the required role
-      if (!allowedRoles.includes(admin.role)) {
+      if (!admin || !allowedRoles.includes(admin.role)) {
         return c.json({ 
           error: `Forbidden - Requires one of the following roles: ${allowedRoles.join(', ')}` 
         }, 403);
