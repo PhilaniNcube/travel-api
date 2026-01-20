@@ -3,6 +3,11 @@ GET http://localhost:3000/api/activities
 
 ###
 
+### Get Single Activity by ID
+GET http://localhost:3000/api/activities/activity_123
+
+###
+
 ### Get Activities with Pagination
 GET http://localhost:3000/api/activities?page=1&limit=5
 

@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { db } from "../db/db";
-import { activities } from "../db/schema";
-import { and, gte, lte, like, sql } from "drizzle-orm";
+import { activities, activityMedia } from "../db/schema";
+import { and, eq, gte, lte, like, sql } from "drizzle-orm";
 
 const app = new Hono();
 
@@ -92,6 +92,60 @@ app.get("/", async (c) => {
       {
         success: false,
         error: "Failed to fetch activities",
+      },
+      500
+    );
+  }
+});
+
+/**
+ * GET /api/activities/:id
+ * Fetch a single activity by ID with associated media
+ * 
+ * Path Parameters:
+ * - id: Activity ID
+ */
+app.get("/:id", async (c) => {
+  try {
+    const activityId = c.req.param("id");
+
+    // Fetch activity by ID
+    const [activity] = await db
+      .select()
+      .from(activities)
+      .where(eq(activities.id, activityId))
+      .limit(1);
+
+    if (!activity) {
+      return c.json(
+        {
+          success: false,
+          error: "Activity not found",
+        },
+        404
+      );
+    }
+
+    // Fetch associated media
+    const media = await db
+      .select()
+      .from(activityMedia)
+      .where(eq(activityMedia.activityId, activityId))
+      .orderBy(activityMedia.displayOrder);
+
+    return c.json({
+      success: true,
+      data: {
+        ...activity,
+        media,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching activity:", error);
+    return c.json(
+      {
+        success: false,
+        error: "Failed to fetch activity",
       },
       500
     );
