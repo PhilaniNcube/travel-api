@@ -1,0 +1,27 @@
+### Get All Activities (No filters)
+GET http://localhost:3000/api/activities
+
+###
+
+### Get Activities with Pagination
+GET http://localhost:3000/api/activities?page=1&limit=5
+
+###
+
+### Filter Activities by Location
+GET http://localhost:3000/api/activities?location=Cape Town
+
+###
+
+### Filter Activities by Price Range
+GET http://localhost:3000/api/activities?minPrice=50&maxPrice=200
+
+###
+
+### Filter Activities by Location and Price Range
+GET http://localhost:3000/api/activities?location=Cape&minPrice=100&maxPrice=500
+
+###
+
+### Get Second Page with Filters
+GET http://localhost:3000/api/activities?page=2&limit=10&location=Cape Town
